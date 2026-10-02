@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AD Key System</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">AD</div>
+      <h1>Key Generation</h1>
+      <p class="subtitle">Complete all tasks to receive your key</p>
+    </header>
+
+    <div class="steps">
+      <!-- TASK 1 -->
+      <div class="step" id="step1">
+        <div class="step-header">
+          <span class="step-number">01</span>
+          <span class="step-title">Join Telegram Channel</span>
+          <span class="step-status" id="status1">Pending</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Join our Telegram channel to receive updates and support.</p>
+          <a href="{{ telegram_channel }}" target="_blank" rel="noopener" class="btn" id="joinBtn">
+            Join Channel
+          </a>
+          <div class="cooldown" id="cooldown1" style="display:none;">
+            <div class="cooldown-bar"><div class="cooldown-fill" id="fill1"></div></div>
+            <span class="cooldown-text" id="cooltext1">Wait 30s...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASK 2 -->
+      <div class="step disabled" id="step2">
+        <div class="step-header">
+          <span class="step-number">02</span>
+          <span class="step-title">Verify You Are Human</span>
+          <span class="step-status" id="status2">Locked</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Answer the challenge below to prove you are human.</p>
+          <div class="captcha-box" id="captchaBox" style="display:none;">
+            <div class="captcha-question" id="captchaQuestion">Loading...</div>
+            <div class="captcha-input-row">
+              <input type="text" id="captchaInput" class="captcha-input" placeholder="Your answer" autocomplete="off" />
+              <button class="btn" id="captchaSubmit">Submit</button>
+            </div>
+            <div class="captcha-error" id="captchaError" style="display:none;"></div>
+            <button class="btn-link" id="newChallenge">Get new challenge</button>
+          </div>
+          <button class="btn" id="startVerify">Start Verification</button>
+          <div class="cooldown" id="cooldown2" style="display:none;">
+            <div class="cooldown-bar"><div class="cooldown-fill" id="fill2"></div></div>
+            <span class="cooldown-text" id="cooltext2">Wait 30s...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASK 3 -->
+      <div class="step disabled" id="step3">
+        <div class="step-header">
+          <span class="step-number">03</span>
+          <span class="step-title">Generate Your Key</span>
+          <span class="step-status" id="status3">Locked</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Click below to receive your key. Valid for 24 hours.</p>
+          <button class="btn" id="genBtn" disabled>Generate Key</button>
+          <div class="key-display" id="keyDisplay" style="display:none;">
+            <div class="key-label">Your Key</div>
+            <div class="key-value" id="keyValue">AD-XXXX-XXXX-XXXX</div>
+            <button class="btn-small" id="copyBtn">Copy</button>
+            <div class="key-note">Expires in 24 hours</div>
+          </div>
+          <div class="error-msg" id="errorMsg" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>AD Key System • Secure & Fast</p>
+    </footer>
+  </div>
+
+  <script>
+    let task1Done = false;
+    let task2Done = false;
+
+    // ===== TASK 1 =====
+    document.getElementById('joinBtn').addEventListener('click', function () {
+      const btn = this;
+      const cool = document.getElementById('cooldown1');
+      const fill = document.getElementById('fill1');
+      const text = document.getElementById('cooltext1');
+      const status = document.getElementById('status1');
+
+      btn.style.display = 'none';
+      cool.style.display = 'block';
+      status.textContent = 'Waiting...';
+      status.className = 'step-status waiting';
+
+      const duration = 30000;
+      const start = Date.now();
+
+      const timer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const remaining = Math.max(0, duration - elapsed);
+        const pct = (elapsed / duration) * 100;
+        fill.style.width = Math.min(100, pct) + '%';
+        text.textContent = 'Wait ' + Math.ceil(remaining / 1000) + 's...';
+
+        if (elapsed >= duration) {
+          clearInterval(timer);
+          task1Done = true;
+          status.textContent = 'Completed';
+          status.className = 'step-status done';
+          document.getElementById('step2').classList.remove('disabled');
+          const s2 = document.getElementById('status2');
+          s2.textContent = 'Ready';
+          s2.className = 'step-status ready';
+        }
+      }, 100);
+    });
+
+    // ===== TASK 2 =====
+    const startVerifyBtn = document.getElementById('startVerify');
+    const captchaBox = document.getElementById('captchaBox');
+    const captchaQuestion = document.getElementById('captchaQuestion');
+    const captchaInput = document.getElementById('captchaInput');
+    const captchaSubmit = document.getElementById('captchaSubmit');
+    const captchaError = document.getElementById('captchaError');
+    const newChallengeBtn = document.getElementById('newChallenge');
+
+    async function loadChallenge() {
+      captchaQuestion.textContent = 'Loading...';
+      captchaError.style.display = 'none';
+      captchaInput.value = '';
+      captchaInput.disabled = false;
+      captchaSubmit.disabled = false;
+
+      try {
+        const r = await fetch('/api/get-challenge', { method: 'POST' });
+        const data = await r.json();
+        if (!data.success) {
+          captchaQuestion.textContent = 'Error loading challenge';
+          return;
+        }
+        captchaQuestion.textContent = data.question;
+        captchaInput.focus();
+      } catch (e) {
+        captchaQuestion.textContent = 'Network error';
+      }
+    }
+
+    startVerifyBtn.addEventListener('click', async () => {
+      startVerifyBtn.style.display = 'none';
+      captchaBox.style.display = 'block';
+      await loadChallenge();
+    });
+
+    newChallengeBtn.addEventListener('click', loadChallenge);
+
+    captchaSubmit.addEventListener('click', async () => {
+      const answer = captchaInput.value.trim();
+      if (!answer) {
+        captchaError.textContent = 'Enter your answer';
+        captchaError.style.display = 'block';
+        return;
+      }
+
+      captchaSubmit.disabled = true;
+      captchaSubmit.textContent = 'Checking...';
+      captchaError.style.display = 'none';
+
+      try {
+        const r = await fetch('/api/verify-human', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer }),
+        });
+        const data = await r.json();
+
+        if (!data.success) {
+          captchaError.textContent = data.error || 'Wrong answer';
+          captchaError.style.display = 'block';
+          captchaSubmit.disabled = false;
+          captchaSubmit.textContent = 'Submit';
+          setTimeout(loadChallenge, 800);
+          return;
+        }
+
+        captchaBox.style.display = 'none';
+        startCooldown2();
+      } catch (e) {
+        captchaError.textContent = 'Network error';
+        captchaError.style.display = 'block';
+        captchaSubmit.disabled = false;
+        captchaSubmit.textContent = 'Submit';
+      }
+    });
+
+    captchaInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') captchaSubmit.click();
+    });
+
+    function startCooldown2() {
+      const cool = document.getElementById('cooldown2');
+      const fill = document.getElementById('fill2');
+      const text = document.getElementById('cooltext2');
+      const status = document.getElementById('status2');
+
+      cool.style.display = 'block';
+      status.textContent = 'Verifying...';
+      status.className = 'step-status waiting';
+
+      const duration = 30000;
+      const start = Date.now();
+
+      const timer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const remaining = Math.max(0, duration - elapsed);
+        const pct = (elapsed / duration) * 100;
+        fill.style.width = Math.min(100, pct) + '%';
+        text.textContent = 'Wait ' + Math.ceil(remaining / 1000) + 's...';
+
+        if (elapsed >= duration) {
+          clearInterval(timer);
+          task2Done = true;
+          status.textContent = 'Verified';
+          status.className = 'step-status done';
+          document.getElementById('step3').classList.remove('disabled');
+          const s3 = document.getElementById('status3');
+          s3.textContent = 'Ready';
+          s3.className = 'step-status ready';
+          document.getElementById('genBtn').disabled = false;
+        }
+      }, 100);
+    }
+
+    // ===== TASK 3 =====
+    document.getElementById('genBtn').addEventListener('click', async function () {
+      const btn = this;
+      const err = document.getElementById('errorMsg');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      err.style.display = 'none';
+
+      try {
+        const r = await fetch('/api/generate-key', { method: 'POST' });
+        const data = await r.json();
+
+        if (!data.success) {
+          err.textContent = data.error || 'Error';
+          err.style.display = 'block';
+          btn.textContent = 'Generate Key';
+          btn.disabled = false;
+          return;
+        }
+
+        document.getElementById('keyValue').textContent = data.key;
+        document.getElementById('keyDisplay').style.display = 'block';
+        document.getElementById('status3').textContent = 'Complete';
+        document.getElementById('status3').className = 'step-status done';
+        btn.style.display = 'none';
+      } catch (e) {
+        err.textContent = 'Network error';
+        err.style.display = 'block';
+        btn.textContent = 'Generate Key';
+        btn.disabled = false;
+      }
+    });
+
+    // ===== COPY =====
+    document.getElementById('copyBtn').addEventListener('click', function () {
+      const key = document.getElementById('keyValue').textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        this.textContent = 'Copied!';
+        setTimeout(() => (this.textContent = 'Copy'), 2000);
+      }).catch(() => {
+        const range = document.createRange();
+        range.selectNode(document.getElementById('keyValue'));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        this.textContent = 'Copied!';
+        setTimeout(() => (this.textContent = 'Copy'), 2000);
+      });
+    });
+  </script>
+</body>
+</html>
